@@ -1,0 +1,5 @@
+# Paritok backend for Dragstrip.
+# Hosted GPU (recommended): flip to true and set PARITOK_API_KEY.
+use_gpu_server: false
+local_model:
+  timeout: 600.0

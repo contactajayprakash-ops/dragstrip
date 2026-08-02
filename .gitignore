@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+races/*.json
+!races/demo-*.json
+.venv/
+nohup.out
