@@ -1,0 +1,234 @@
+"""Dragstrip — race the same agent with and without Paritok compression.
+
+FastAPI app: kicks off two identical agent lanes against a repo question,
+streams live telemetry over SSE, and finishes with a savings receipt and a
+blind quality verdict. Finished races are saved and replayable, so the UI
+works (and demos) even with no API keys configured.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import threading
+import time
+import uuid
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+import repo_tools
+from agent import Lane, judge_answers, price_per_mtok
+
+ROOT = Path(__file__).parent
+RACES_DIR = Path(os.environ.get("DRAGSTRIP_RACES", ROOT / "races"))
+RACES_DIR.mkdir(exist_ok=True)
+
+app = FastAPI(title="Dragstrip")
+
+
+class RaceRequest(BaseModel):
+    repo_url: str
+    question: str
+
+
+class RaceState:
+    def __init__(self, race_id: str, repo_url: str, question: str):
+        self.race_id = race_id
+        self.repo_url = repo_url
+        self.question = question
+        self.events: list[dict] = []
+        self.done = False
+        self.cond = threading.Condition()
+        self.stop_flag = threading.Event()
+        self.t0 = time.time()
+
+    def emit(self, etype: str, payload: dict):
+        evt = {"t": round(time.time() - self.t0, 2), "type": etype, **payload}
+        with self.cond:
+            self.events.append(evt)
+            if etype == "race_done":
+                self.done = True
+            self.cond.notify_all()
+
+
+RACES: dict[str, RaceState] = {}
+
+
+def _persist(state: RaceState, receipt: dict | None):
+    doc = {
+        "race_id": state.race_id,
+        "repo_url": state.repo_url,
+        "question": state.question,
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "receipt": receipt,
+        "events": state.events,
+    }
+    (RACES_DIR / f"{state.race_id}.json").write_text(json.dumps(doc, indent=1))
+
+
+def _run_race(state: RaceState):
+    emit = state.emit
+    try:
+        emit("status", {"message": f"Cloning {state.repo_url} …"})
+        repo_root = repo_tools.clone_repo(state.repo_url)
+        emit("status", {"message": "Repo ready. Lights out — both lanes running."})
+
+        lanes = {
+            "raw": Lane("raw", repo_root, state.question, emit,
+                        use_paritok=False, stop_flag=state.stop_flag),
+            "paritok": Lane("paritok", repo_root, state.question, emit,
+                            use_paritok=True, stop_flag=state.stop_flag),
+        }
+        threads = [threading.Thread(target=l.run, daemon=True) for l in lanes.values()]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=900)
+
+        raw, par = lanes["raw"], lanes["paritok"]
+        verdict = None
+        if raw.answer and par.answer and not (raw.error or par.error):
+            emit("status", {"message": "Photo finish — blind judge comparing answers."})
+            try:
+                # A/B order fixed: A = raw, B = paritok. The judge never knows which.
+                verdict = judge_answers(state.question, raw.answer, par.answer)
+            except Exception as e:
+                verdict = {"score_a": None, "score_b": None,
+                           "note": f"judge unavailable: {e}"}
+            emit("verdict", {"raw_score": verdict.get("score_a"),
+                             "paritok_score": verdict.get("score_b"),
+                             "note": verdict.get("note", "")})
+
+        model = raw.model
+        rate = price_per_mtok(model)
+        saved = raw.meter.input_tokens - par.meter.input_tokens
+        receipt = {
+            "model": model,
+            "usd_per_mtok": rate,
+            "raw": raw.meter.as_dict() | {"wall_seconds": raw.wall_seconds,
+                                          "error": raw.error},
+            "paritok": par.meter.as_dict() | {"wall_seconds": par.wall_seconds,
+                                              "error": par.error},
+            "input_tokens_saved": saved,
+            "input_pct_saved": round(100 * saved / raw.meter.input_tokens, 1)
+                               if raw.meter.input_tokens else 0.0,
+            "cost_saved_usd": round(saved / 1e6 * rate, 6),
+            # what the same token gap costs at Claude Sonnet list price —
+            # the bill most coding agents actually pay
+            "cost_saved_at_sonnet_usd": round(saved / 1e6 * 3.0, 6),
+            "verdict": verdict,
+        }
+        emit("race_done", {"receipt": receipt})
+        _persist(state, receipt)
+    except repo_tools.RepoError as e:
+        emit("race_error", {"message": str(e)})
+        emit("race_done", {"receipt": None})
+    except Exception as e:
+        emit("race_error", {"message": f"{type(e).__name__}: {e}"})
+        emit("race_done", {"receipt": None})
+
+
+@app.post("/api/race")
+def start_race(req: RaceRequest):
+    if not (os.environ.get("DRAGSTRIP_LLM_API_KEY") or os.environ.get("GROQ_API_KEY")):
+        raise HTTPException(503, "No LLM API key configured — try a saved replay below.")
+    if not req.question.strip():
+        raise HTTPException(400, "Ask a question about the repo.")
+    race_id = uuid.uuid4().hex[:12]
+    state = RaceState(race_id, req.repo_url.strip(), req.question.strip())
+    RACES[race_id] = state
+    threading.Thread(target=_run_race, args=(state,), daemon=True).start()
+    return {"race_id": race_id}
+
+
+@app.get("/api/race/{race_id}/events")
+def race_events(race_id: str):
+    state = RACES.get(race_id)
+    if state is None:
+        raise HTTPException(404, "No such race.")
+
+    def gen():
+        i = 0
+        while True:
+            with state.cond:
+                while i >= len(state.events) and not state.done:
+                    state.cond.wait(timeout=15)
+                batch = state.events[i:]
+                i = len(state.events)
+                finished = state.done
+            for evt in batch:
+                yield f"data: {json.dumps(evt)}\n\n"
+            if finished and i >= len(state.events):
+                return
+            if not batch:
+                yield ": keepalive\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache",
+                                      "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/race/{race_id}/stop")
+def stop_race(race_id: str):
+    state = RACES.get(race_id)
+    if state is None:
+        raise HTTPException(404, "No such race.")
+    state.stop_flag.set()
+    return {"ok": True}
+
+
+@app.get("/api/replays")
+def list_replays():
+    out = []
+    for f in sorted(RACES_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime,
+                    reverse=True)[:30]:
+        try:
+            doc = json.loads(f.read_text())
+        except json.JSONDecodeError:
+            continue
+        r = doc.get("receipt")
+        # only clean finishes make the replay shelf
+        if not r or r["raw"].get("error") or r["paritok"].get("error"):
+            continue
+        out.append({
+            "race_id": doc["race_id"],
+            "repo_url": doc["repo_url"],
+            "question": doc["question"],
+            "saved_at": doc.get("saved_at"),
+            "pct_saved": r.get("input_pct_saved"),
+            "tokens_saved": r.get("input_tokens_saved"),
+        })
+    return out
+
+
+@app.get("/api/replay/{race_id}")
+def get_replay(race_id: str):
+    if not re.fullmatch(r"[0-9a-f]{12}", race_id):
+        raise HTTPException(400, "Bad race id.")
+    f = RACES_DIR / f"{race_id}.json"
+    if not f.exists():
+        raise HTTPException(404, "No such replay.")
+    return json.loads(f.read_text())
+
+
+@app.get("/api/health")
+def health():
+    return {
+        "ok": True,
+        "llm_key": bool(os.environ.get("DRAGSTRIP_LLM_API_KEY")
+                        or os.environ.get("GROQ_API_KEY")),
+        "paritok_hosted": bool(os.environ.get("PARITOK_API_KEY")),
+    }
+
+
+@app.get("/")
+def index():
+    return FileResponse(ROOT / "static" / "index.html")
+
+
+app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")

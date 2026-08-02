@@ -1,0 +1,4 @@
+fastapi>=0.111
+uvicorn>=0.30
+openai>=1.40
+paritok>=1.2.8
