@@ -59,6 +59,23 @@ class RaceState:
 RACES: dict[str, RaceState] = {}
 
 
+def _warm_gpu():
+    """Nudge Paritok's hosted GPU awake so the first compression isn't a cold start."""
+    key = os.environ.get("PARITOK_API_KEY")
+    if not key:
+        return
+
+    def ping():
+        try:
+            import httpx
+            httpx.get("https://www.paritok.com/api/test", timeout=60,
+                      headers={"Authorization": f"Bearer {key}"})
+        except Exception:
+            pass  # warmup is best-effort; the strategy degrades gracefully anyway
+
+    threading.Thread(target=ping, daemon=True).start()
+
+
 def _persist(state: RaceState, receipt: dict | None):
     doc = {
         "race_id": state.race_id,
@@ -74,6 +91,7 @@ def _persist(state: RaceState, receipt: dict | None):
 def _run_race(state: RaceState):
     emit = state.emit
     try:
+        _warm_gpu()
         emit("status", {"message": f"Cloning {state.repo_url} …"})
         repo_root = repo_tools.clone_repo(state.repo_url)
         emit("status", {"message": "Repo ready. Lights out — both lanes running."})
