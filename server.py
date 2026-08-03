@@ -26,7 +26,17 @@ from agent import Lane, judge_answers, price_per_mtok
 
 ROOT = Path(__file__).parent
 RACES_DIR = Path(os.environ.get("DRAGSTRIP_RACES", ROOT / "races"))
-RACES_DIR.mkdir(exist_ok=True)
+RACES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Seed bundled demo replays into the live races dir (fresh deploys boot with
+# something on the shelf even before anyone runs a race).
+for _demo in (ROOT / "races_seed").glob("*.json"):
+    _target = RACES_DIR / _demo.name
+    if not _target.exists():
+        try:
+            _target.write_text(_demo.read_text())
+        except OSError:
+            pass
 
 app = FastAPI(title="Dragstrip")
 

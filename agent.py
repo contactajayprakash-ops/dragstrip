@@ -211,6 +211,7 @@ class Lane:
     def _run_inner(self):
         messages = [{"role": "user", "content": self.question}]
         stubbed: list = []
+        nudges = 0
 
         for turn in range(1, MAX_TURNS + 1):
             if self.stop_flag.is_set():
@@ -262,6 +263,19 @@ class Lane:
             tool_uses = [b for b in blocks if b["type"] == "tool_use"]
 
             if not tool_uses:
+                # An answer with no repo evidence behind it isn't an answer —
+                # send the agent back in. Same nudge in both lanes; two max.
+                if self.meter.tool_calls == 0 and nudges < 2:
+                    nudges += 1
+                    messages.append({"role": "assistant", "content": blocks})
+                    messages.append({"role": "user", "content": (
+                        "You have not opened a single file. Do not answer from "
+                        "prior knowledge of this library — investigate this "
+                        "actual checkout with the tools, then answer with file "
+                        "and line citations.")})
+                    self.emit("status_lane", {"lane": self.lane_id,
+                                              "message": "answered without looking — sent back in"})
+                    continue
                 self.answer = "\n".join(b["text"] for b in blocks
                                         if b["type"] == "text").strip()
                 messages.append({"role": "assistant", "content": blocks})
