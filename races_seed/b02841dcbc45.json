@@ -1,0 +1,741 @@
+{
+ "race_id": "b02841dcbc45",
+ "repo_url": "https://github.com/pallets/flask",
+ "question": "How does the application context differ from the request context, and where is each pushed?",
+ "saved_at": "2026-08-03T00:34:03Z",
+ "receipt": {
+  "model": "gemini-3.5-flash-lite",
+  "usd_per_mtok": 0.3,
+  "raw": {
+   "input_tokens": 61461,
+   "output_tokens": 898,
+   "api_calls": 10,
+   "tool_calls": 9,
+   "compressed_from": 0,
+   "compressed_to": 0,
+   "wall_seconds": 8.5,
+   "error": null
+  },
+  "paritok": {
+   "input_tokens": 18011,
+   "output_tokens": 770,
+   "api_calls": 11,
+   "tool_calls": 10,
+   "compressed_from": 5489,
+   "compressed_to": 1364,
+   "wall_seconds": 69.6,
+   "error": null
+  },
+  "input_tokens_saved": 43450,
+  "input_pct_saved": 70.7,
+  "cost_saved_usd": 0.013035,
+  "cost_saved_at_sonnet_usd": 0.13035,
+  "verdict": {
+   "score_a": 10,
+   "score_b": 9,
+   "note": "Both answers are exceptionally accurate regarding the unification of Flask's context classes, but Answer A is slightly more specific with precise line numbers in app.py."
+  }
+ },
+ "events": [
+  {
+   "t": 0.0,
+   "type": "status",
+   "message": "Cloning https://github.com/pallets/flask \u2026"
+  },
+  {
+   "t": 0.0,
+   "type": "status",
+   "message": "Repo ready. Lights out \u2014 both lanes running."
+  },
+  {
+   "t": 1.34,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 1,
+   "prompt_tokens": 413,
+   "completion_tokens": 16,
+   "total_input": 413,
+   "cost_usd": 0.000124
+  },
+  {
+   "t": 1.36,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 1,
+   "tool": "search_code",
+   "args": {
+    "pattern": "AppContext"
+   },
+   "virtual": false,
+   "chars": 2142
+  },
+  {
+   "t": 1.45,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 1,
+   "prompt_tokens": 413,
+   "completion_tokens": 16,
+   "total_input": 413,
+   "cost_usd": 0.000124
+  },
+  {
+   "t": 1.47,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 1,
+   "tool": "search_code",
+   "args": {
+    "pattern": "AppContext"
+   },
+   "virtual": false,
+   "chars": 2142
+  },
+  {
+   "t": 1.47,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 2
+  },
+  {
+   "t": 1.83,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 2,
+   "prompt_tokens": 1180,
+   "completion_tokens": 18,
+   "total_input": 1593,
+   "cost_usd": 0.000478
+  },
+  {
+   "t": 1.85,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 2,
+   "tool": "search_code",
+   "args": {
+    "pattern": "class AppContext"
+   },
+   "virtual": false,
+   "chars": 129
+  },
+  {
+   "t": 2.31,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 3,
+   "prompt_tokens": 1255,
+   "completion_tokens": 18,
+   "total_input": 2848,
+   "cost_usd": 0.000854
+  },
+  {
+   "t": 2.33,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 3,
+   "tool": "search_code",
+   "args": {
+    "pattern": "class RequestContext"
+   },
+   "virtual": false,
+   "chars": 37
+  },
+  {
+   "t": 2.82,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 4,
+   "prompt_tokens": 1294,
+   "completion_tokens": 36,
+   "total_input": 4142,
+   "cost_usd": 0.001243
+  },
+  {
+   "t": 2.82,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 4,
+   "tool": "read_file",
+   "args": {
+    "end_line": 545,
+    "path": "src/flask/ctx.py",
+    "start_line": 1
+   },
+   "virtual": false,
+   "chars": 21544
+  },
+  {
+   "t": 3.35,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 5,
+   "prompt_tokens": 8735,
+   "completion_tokens": 19,
+   "total_input": 12877,
+   "cost_usd": 0.003863
+  },
+  {
+   "t": 3.36,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 5,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def app_context"
+   },
+   "virtual": false,
+   "chars": 124
+  },
+  {
+   "t": 3.47,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 2,
+   "original": 633,
+   "compressed": 120,
+   "ratio": 0.81,
+   "items": 1,
+   "cache_hits": 0
+  },
+  {
+   "t": 3.93,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 6,
+   "prompt_tokens": 8817,
+   "completion_tokens": 21,
+   "total_input": 21694,
+   "cost_usd": 0.006508
+  },
+  {
+   "t": 3.95,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 6,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def test_request_context"
+   },
+   "virtual": false,
+   "chars": 175
+  },
+  {
+   "t": 3.99,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 2,
+   "prompt_tokens": 838,
+   "completion_tokens": 18,
+   "total_input": 1251,
+   "cost_usd": 0.000375
+  },
+  {
+   "t": 4.0,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 2,
+   "tool": "search_code",
+   "args": {
+    "pattern": "class AppContext"
+   },
+   "virtual": false,
+   "chars": 129
+  },
+  {
+   "t": 4.0,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 3
+  },
+  {
+   "t": 4.01,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 3,
+   "original": 670,
+   "compressed": 157,
+   "ratio": 0.766,
+   "items": 1,
+   "cache_hits": 1
+  },
+  {
+   "t": 4.52,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 3,
+   "prompt_tokens": 913,
+   "completion_tokens": 18,
+   "total_input": 2164,
+   "cost_usd": 0.000649
+  },
+  {
+   "t": 4.54,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 3,
+   "tool": "search_code",
+   "args": {
+    "pattern": "class RequestContext"
+   },
+   "virtual": false,
+   "chars": 37
+  },
+  {
+   "t": 4.54,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 4
+  },
+  {
+   "t": 4.55,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 4,
+   "original": 677,
+   "compressed": 164,
+   "ratio": 0.758,
+   "items": 1,
+   "cache_hits": 1
+  },
+  {
+   "t": 4.57,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 7,
+   "prompt_tokens": 8921,
+   "completion_tokens": 23,
+   "total_input": 30615,
+   "cost_usd": 0.009184
+  },
+  {
+   "t": 4.59,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 7,
+   "tool": "search_code",
+   "args": {
+    "pattern": "wsgy_app|wsgi_app"
+   },
+   "virtual": false,
+   "chars": 1010
+  },
+  {
+   "t": 5.01,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 4,
+   "prompt_tokens": 952,
+   "completion_tokens": 18,
+   "total_input": 3116,
+   "cost_usd": 0.000935
+  },
+  {
+   "t": 5.03,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 4,
+   "tool": "search_code",
+   "args": {
+    "pattern": "request_context"
+   },
+   "virtual": false,
+   "chars": 5055
+  },
+  {
+   "t": 5.03,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 5
+  },
+  {
+   "t": 5.14,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 8,
+   "prompt_tokens": 9351,
+   "completion_tokens": 25,
+   "total_input": 39966,
+   "cost_usd": 0.01199
+  },
+  {
+   "t": 5.15,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 8,
+   "tool": "search_code",
+   "args": {
+    "pattern": "wsgi_app",
+    "glob": "*.py"
+   },
+   "virtual": false,
+   "chars": 341
+  },
+  {
+   "t": 5.75,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 9,
+   "prompt_tokens": 9531,
+   "completion_tokens": 40,
+   "total_input": 49497,
+   "cost_usd": 0.014849
+  },
+  {
+   "t": 5.75,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 9,
+   "tool": "read_file",
+   "args": {
+    "start_line": 1470,
+    "end_line": 1620,
+    "path": "src/flask/app.py"
+   },
+   "virtual": false,
+   "chars": 6798
+  },
+  {
+   "t": 7.26,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 5,
+   "original": 2011,
+   "compressed": 395,
+   "ratio": 0.804,
+   "items": 2,
+   "cache_hits": 1
+  },
+  {
+   "t": 7.75,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 5,
+   "prompt_tokens": 1316,
+   "completion_tokens": 17,
+   "total_input": 4432,
+   "cost_usd": 0.00133
+  },
+  {
+   "t": 7.76,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 5,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def push"
+   },
+   "virtual": false,
+   "chars": 46
+  },
+  {
+   "t": 7.76,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 6
+  },
+  {
+   "t": 7.77,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 6,
+   "original": 2027,
+   "compressed": 411,
+   "ratio": 0.797,
+   "items": 2,
+   "cache_hits": 2
+  },
+  {
+   "t": 8.26,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 6,
+   "prompt_tokens": 1367,
+   "completion_tokens": 38,
+   "total_input": 5799,
+   "cost_usd": 0.00174
+  },
+  {
+   "t": 8.26,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 6,
+   "tool": "read_file",
+   "args": {
+    "end_line": 450,
+    "start_line": 250,
+    "path": "src/flask/ctx.py"
+   },
+   "virtual": false,
+   "chars": 8912
+  },
+  {
+   "t": 8.26,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 7
+  },
+  {
+   "t": 8.67,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 10,
+   "prompt_tokens": 11964,
+   "completion_tokens": 682,
+   "total_input": 61461,
+   "cost_usd": 0.018438
+  },
+  {
+   "t": 8.67,
+   "type": "lane_done",
+   "lane": "raw",
+   "answer": "In modern Flask versions (specifically Flask 3.2+), **the application context and the request context have merged into a single class (`AppContext`)**. \n\nHowever, conceptually and historically, they represent different scopes of information and data availability.\n\n---\n\n### How Application Context Differs from Request Context\n\n1. **Application Context (App-only / Base Context):**\n   - **Purpose:** Represents the Flask application itself (`current_app`) and provides a namespace (`g`) for storing global data during the duration of an app-level task (such as a CLI command or database initialization).\n   - **Proxies available:** `current_app`, `g`.\n   - **Request/Session access:** Attempting to access `request` or `session` while only an application context is active will raise a `RuntimeError` (\"*There is no request in this context.*\").\n\n2. **Request Context (Combined App + Request Context):**\n   - **Purpose:** Represents an incoming HTTP request in addition to the application. It is created from a WSGI `environ` and contains information about the specific request being handled.\n   - **Proxies available:** `current_app`, `g`, `request`, and `session`.\n   - **Functionality:** It performs URL matching (`match_request()`), opens the user session (`_get_session()`), tracks `after_request` functions, and runs both request teardown and app teardown handlers upon popping.\n\n---\n\n### Where Is Each Pushed?\n\nBecause the concepts are unified in `AppContext`, **both are pushed via the `AppContext.push()` method** (or managed via context managers / `with` blocks using `app.app_context()` or `app.request_context()`), stored in the same context variable (`_cv_app` in `src/flask/globals.py`). \n\nDepending on the scenario, the context is pushed in the following places:\n\n1. **During HTTP Request Handling (`wsgi_app`):**\n   - When a WSGI server invokes the Flask application, `Flask.wsgi_app()` creates a **request context** (an `AppContext` initialized with request data via `self.request_context(environ)` at `src/flask/app.py:1592`).\n   - It is pushed onto the context stack via `ctx.push()` at line 1596, and popped via `ctx.pop(error)` in the `finally` block at line 1616.\n\n2. **During CLI Commands:**\n   - Flask CLI commands automatically push an **application context** (without request information) so that `current_app` and `g` are available while executing management commands.\n\n3. **Manually via Setup or Tests:**\n   - **Application Context:** Created and pushed manually during setup tasks (e.g., initializing a database) using `with app.app_context():` (`src/flask/app.py:1481`).\n   - **Request Context:** Created and pushed manually during testing using `with app.test_request_context(...):` (`src/flask/app.py:1517`) or `app.request_context(environ)`.",
+   "error": null,
+   "wall_seconds": 8.5,
+   "meter": {
+    "input_tokens": 61461,
+    "output_tokens": 898,
+    "api_calls": 10,
+    "tool_calls": 9,
+    "compressed_from": 0,
+    "compressed_to": 0
+   }
+  },
+  {
+   "t": 12.53,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 7,
+   "original": 4348,
+   "compressed": 1076,
+   "ratio": 0.753,
+   "items": 3,
+   "cache_hits": 2
+  },
+  {
+   "t": 14.31,
+   "type": "rate_limited",
+   "lane": "paritok",
+   "turn": 7,
+   "wait_s": 45.0
+  },
+  {
+   "t": 60.16,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 7,
+   "prompt_tokens": 2216,
+   "completion_tokens": 19,
+   "total_input": 8015,
+   "cost_usd": 0.002404
+  },
+  {
+   "t": 60.18,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 7,
+   "tool": "search_code",
+   "args": {
+    "pattern": "_cv_app"
+   },
+   "virtual": false,
+   "chars": 1564
+  },
+  {
+   "t": 60.18,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 8
+  },
+  {
+   "t": 62.21,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 8,
+   "original": 4861,
+   "compressed": 1223,
+   "ratio": 0.748,
+   "items": 4,
+   "cache_hits": 3
+  },
+  {
+   "t": 63.37,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 8,
+   "prompt_tokens": 2428,
+   "completion_tokens": 35,
+   "total_input": 10443,
+   "cost_usd": 0.003133
+  },
+  {
+   "t": 63.37,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 8,
+   "tool": "read_file",
+   "args": {
+    "path": "src/flask/globals.py",
+    "start_line": 1,
+    "end_line": 50
+   },
+   "virtual": false,
+   "chars": 1961
+  },
+  {
+   "t": 63.37,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 9
+  },
+  {
+   "t": 65.1,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 9,
+   "original": 5454,
+   "compressed": 1329,
+   "ratio": 0.756,
+   "items": 5,
+   "cache_hits": 4
+  },
+  {
+   "t": 65.53,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 9,
+   "prompt_tokens": 2601,
+   "completion_tokens": 19,
+   "total_input": 13044,
+   "cost_usd": 0.003913
+  },
+  {
+   "t": 65.55,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 9,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def app_context"
+   },
+   "virtual": false,
+   "chars": 124
+  },
+  {
+   "t": 65.55,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 10
+  },
+  {
+   "t": 65.55,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 10,
+   "original": 5489,
+   "compressed": 1364,
+   "ratio": 0.752,
+   "items": 5,
+   "cache_hits": 5
+  },
+  {
+   "t": 66.03,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 10,
+   "prompt_tokens": 2683,
+   "completion_tokens": 40,
+   "total_input": 15727,
+   "cost_usd": 0.004718
+  },
+  {
+   "t": 66.03,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 10,
+   "tool": "read_file",
+   "args": {
+    "end_line": 1520,
+    "start_line": 1475,
+    "path": "src/flask/app.py"
+   },
+   "virtual": false,
+   "chars": 2204
+  },
+  {
+   "t": 69.77,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 11,
+   "prompt_tokens": 2284,
+   "completion_tokens": 532,
+   "total_input": 18011,
+   "cost_usd": 0.005403
+  },
+  {
+   "t": 69.77,
+   "type": "lane_done",
+   "lane": "paritok",
+   "answer": "Based on the codebase, Flask has merged what were previously separate `RequestContext` and `AppContext` classes into a single unified **`AppContext`** class (as seen in `src/flask/ctx.py` and `CHANGES.rst`). \n\n### How Application Context and Request Context Differ\nWhile they share the same class (`AppContext`), they differ based on whether a WSGI environment/request is attached:\n\n1. **Application-only Context (App Context):**\n   - Created via `app.app_context()` without a request object (`self._request` is `None`).\n   - Provides access to application-level objects such as `current_app`, application globals (`g`), and application configuration, but accessing `request` or `session` will raise a `RuntimeError` (`\"There is no request in this context.\"`).\n\n2. **Request-inclusive Context (Request Context):**\n   - Created via `app.request_context(environ)` or `app.test_request_context(...)` (which use `AppContext.from_environ`), initializing an `AppContext` with an attached `request` object (`self._request` is present).\n   - During its `push()`, it automatically initializes the session via `self._get_session()` and performs URL matching (`self.match_request()`) to populate `request.url_rule` and `request.view_args`.\n\n---\n\n### Where Each is Pushed\n\nBoth are pushed onto the same underlying context variable (`_cv_app`, defined in `src/flask/globals.py` as a `ContextVar[AppContext]`). \n\n- **Push Mechanism (`AppContext.push()` in `src/flask/ctx.py`):**\n  - Increments a push counter (`self._push_count += 1`).\n  - Sets the context in the context variable via `self._cv_token = _cv_app.set(self)`.\n  - Sends the `appcontext_pushed` signal.\n  - If the context contains a request (`self._request is not None`), it evaluates and opens the session and matches the URL adapter.\n\n- **How WSGI Dispatches Them (`Flask.__call__` / `wsgi_app`):**\n  - When a request comes in, a request-inclusive context is created via `self.request_context(environ)`.\n  - Calling `.push()` on that context pushes it onto the `_cv_app` context variable for the duration of the request handling cycle.",
+   "error": null,
+   "wall_seconds": 69.6,
+   "meter": {
+    "input_tokens": 18011,
+    "output_tokens": 770,
+    "api_calls": 11,
+    "tool_calls": 10,
+    "compressed_from": 5489,
+    "compressed_to": 1364
+   }
+  },
+  {
+   "t": 69.77,
+   "type": "status",
+   "message": "Photo finish \u2014 blind judge comparing answers."
+  },
+  {
+   "t": 74.02,
+   "type": "verdict",
+   "raw_score": 10,
+   "paritok_score": 9,
+   "note": "Both answers are exceptionally accurate regarding the unification of Flask's context classes, but Answer A is slightly more specific with precise line numbers in app.py."
+  },
+  {
+   "t": 74.02,
+   "type": "race_done",
+   "receipt": {
+    "model": "gemini-3.5-flash-lite",
+    "usd_per_mtok": 0.3,
+    "raw": {
+     "input_tokens": 61461,
+     "output_tokens": 898,
+     "api_calls": 10,
+     "tool_calls": 9,
+     "compressed_from": 0,
+     "compressed_to": 0,
+     "wall_seconds": 8.5,
+     "error": null
+    },
+    "paritok": {
+     "input_tokens": 18011,
+     "output_tokens": 770,
+     "api_calls": 11,
+     "tool_calls": 10,
+     "compressed_from": 5489,
+     "compressed_to": 1364,
+     "wall_seconds": 69.6,
+     "error": null
+    },
+    "input_tokens_saved": 43450,
+    "input_pct_saved": 70.7,
+    "cost_saved_usd": 0.013035,
+    "cost_saved_at_sonnet_usd": 0.13035,
+    "verdict": {
+     "score_a": 10,
+     "score_b": 9,
+     "note": "Both answers are exceptionally accurate regarding the unification of Flask's context classes, but Answer A is slightly more specific with precise line numbers in app.py."
+    }
+   }
+  }
+ ]
+}

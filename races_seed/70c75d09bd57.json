@@ -1,0 +1,784 @@
+{
+ "race_id": "70c75d09bd57",
+ "repo_url": "https://github.com/psf/requests",
+ "question": "Trace what happens between requests.get() and the bytes hitting the socket - which classes hand off to each other?",
+ "saved_at": "2026-08-03T00:35:21Z",
+ "receipt": {
+  "model": "gemini-3.5-flash-lite",
+  "usd_per_mtok": 0.3,
+  "raw": {
+   "input_tokens": 28290,
+   "output_tokens": 593,
+   "api_calls": 11,
+   "tool_calls": 10,
+   "compressed_from": 0,
+   "compressed_to": 0,
+   "wall_seconds": 48.0,
+   "error": null
+  },
+  "paritok": {
+   "input_tokens": 20897,
+   "output_tokens": 704,
+   "api_calls": 11,
+   "tool_calls": 10,
+   "compressed_from": 3087,
+   "compressed_to": 1594,
+   "wall_seconds": 62.5,
+   "error": null
+  },
+  "input_tokens_saved": 7393,
+  "input_pct_saved": 26.1,
+  "cost_saved_usd": 0.002218,
+  "cost_saved_at_sonnet_usd": 0.022179,
+  "verdict": {
+   "score_a": 9,
+   "score_b": 10,
+   "note": "Answer B is slightly more complete and specific, detailing the exact method calls (such as Session.send and sock.sendall) in addition to the file paths and classes."
+  }
+ },
+ "events": [
+  {
+   "t": 0.0,
+   "type": "status",
+   "message": "Cloning https://github.com/psf/requests \u2026"
+  },
+  {
+   "t": 1.18,
+   "type": "status",
+   "message": "Repo ready. Lights out \u2014 both lanes running."
+  },
+  {
+   "t": 1.97,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 1,
+   "prompt_tokens": 419,
+   "completion_tokens": 18,
+   "total_input": 419,
+   "cost_usd": 0.000126
+  },
+  {
+   "t": 1.98,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 1,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def get\\("
+   },
+   "virtual": false,
+   "chars": 433
+  },
+  {
+   "t": 2.13,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 1,
+   "prompt_tokens": 419,
+   "completion_tokens": 18,
+   "total_input": 419,
+   "cost_usd": 0.000126
+  },
+  {
+   "t": 2.14,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 1,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def get\\("
+   },
+   "virtual": false,
+   "chars": 433
+  },
+  {
+   "t": 2.14,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 2
+  },
+  {
+   "t": 2.14,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 2,
+   "original": 141,
+   "compressed": 141,
+   "ratio": 0.0,
+   "items": 0,
+   "cache_hits": 0
+  },
+  {
+   "t": 2.45,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 2,
+   "prompt_tokens": 623,
+   "completion_tokens": 37,
+   "total_input": 1042,
+   "cost_usd": 0.000313
+  },
+  {
+   "t": 2.45,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 2,
+   "tool": "read_file",
+   "args": {
+    "end_line": 120,
+    "start_line": 70,
+    "path": "src/requests/api.py"
+   },
+   "virtual": false,
+   "chars": 1998
+  },
+  {
+   "t": 2.72,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 2,
+   "prompt_tokens": 623,
+   "completion_tokens": 37,
+   "total_input": 1042,
+   "cost_usd": 0.000313
+  },
+  {
+   "t": 2.73,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 2,
+   "tool": "read_file",
+   "args": {
+    "end_line": 115,
+    "path": "src/requests/api.py",
+    "start_line": 70
+   },
+   "virtual": false,
+   "chars": 1876
+  },
+  {
+   "t": 2.73,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 3
+  },
+  {
+   "t": 2.88,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 3,
+   "prompt_tokens": 1415,
+   "completion_tokens": 18,
+   "total_input": 2457,
+   "cost_usd": 0.000737
+  },
+  {
+   "t": 2.9,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 3,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def request\\("
+   },
+   "virtual": false,
+   "chars": 81
+  },
+  {
+   "t": 3.34,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 4,
+   "prompt_tokens": 1478,
+   "completion_tokens": 38,
+   "total_input": 3935,
+   "cost_usd": 0.00118
+  },
+  {
+   "t": 3.34,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 4,
+   "tool": "read_file",
+   "args": {
+    "path": "src/requests/sessions.py",
+    "start_line": 555,
+    "end_line": 600
+   },
+   "virtual": false,
+   "chars": 2440
+  },
+  {
+   "t": 3.77,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 5,
+   "prompt_tokens": 2345,
+   "completion_tokens": 26,
+   "total_input": 6280,
+   "cost_usd": 0.001884
+  },
+  {
+   "t": 3.78,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 5,
+   "tool": "search_code",
+   "args": {
+    "glob": "*sessions.py",
+    "pattern": "send\\("
+   },
+   "virtual": false,
+   "chars": 388
+  },
+  {
+   "t": 4.29,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 6,
+   "prompt_tokens": 2520,
+   "completion_tokens": 38,
+   "total_input": 8800,
+   "cost_usd": 0.00264
+  },
+  {
+   "t": 4.29,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 6,
+   "tool": "read_file",
+   "args": {
+    "end_line": 815,
+    "start_line": 750,
+    "path": "src/requests/sessions.py"
+   },
+   "virtual": false,
+   "chars": 2897
+  },
+  {
+   "t": 4.55,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 3,
+   "original": 713,
+   "compressed": 277,
+   "ratio": 0.612,
+   "items": 1,
+   "cache_hits": 0
+  },
+  {
+   "t": 4.71,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 7,
+   "prompt_tokens": 3525,
+   "completion_tokens": 18,
+   "total_input": 12325,
+   "cost_usd": 0.003697
+  },
+  {
+   "t": 4.73,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 7,
+   "tool": "search_code",
+   "args": {
+    "pattern": "class HTTPAdapter"
+   },
+   "virtual": false,
+   "chars": 62
+  },
+  {
+   "t": 4.98,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 3,
+   "prompt_tokens": 1096,
+   "completion_tokens": 18,
+   "total_input": 2138,
+   "cost_usd": 0.000641
+  },
+  {
+   "t": 4.99,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 3,
+   "tool": "search_code",
+   "args": {
+    "pattern": "def request\\("
+   },
+   "virtual": false,
+   "chars": 81
+  },
+  {
+   "t": 4.99,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 4
+  },
+  {
+   "t": 5.0,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 4,
+   "original": 736,
+   "compressed": 300,
+   "ratio": 0.592,
+   "items": 1,
+   "cache_hits": 1
+  },
+  {
+   "t": 5.15,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 8,
+   "prompt_tokens": 3576,
+   "completion_tokens": 27,
+   "total_input": 15901,
+   "cost_usd": 0.00477
+  },
+  {
+   "t": 5.15,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 8,
+   "tool": "search_code",
+   "args": {
+    "glob": "*adapters.py",
+    "pattern": "def send\\("
+   },
+   "virtual": false,
+   "chars": 81
+  },
+  {
+   "t": 5.52,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 4,
+   "prompt_tokens": 1159,
+   "completion_tokens": 36,
+   "total_input": 3297,
+   "cost_usd": 0.000989
+  },
+  {
+   "t": 5.52,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 4,
+   "tool": "read_file",
+   "args": {
+    "end_line": 60,
+    "start_line": 20,
+    "path": "src/requests/api.py"
+   },
+   "virtual": false,
+   "chars": 2848
+  },
+  {
+   "t": 5.52,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 5
+  },
+  {
+   "t": 6.82,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 5,
+   "original": 1531,
+   "compressed": 1095,
+   "ratio": 0.285,
+   "items": 1,
+   "cache_hits": 1
+  },
+  {
+   "t": 6.95,
+   "type": "rate_limited",
+   "lane": "raw",
+   "turn": 9,
+   "wait_s": 39.6
+  },
+  {
+   "t": 8.59,
+   "type": "rate_limited",
+   "lane": "paritok",
+   "turn": 5,
+   "wait_s": 37.9
+  },
+  {
+   "t": 47.37,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 5,
+   "prompt_tokens": 2087,
+   "completion_tokens": 36,
+   "total_input": 5384,
+   "cost_usd": 0.001615
+  },
+  {
+   "t": 47.37,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 5,
+   "tool": "read_file",
+   "args": {
+    "path": "src/requests/api.py",
+    "end_line": 65,
+    "start_line": 58
+   },
+   "virtual": false,
+   "chars": 246
+  },
+  {
+   "t": 47.37,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 6
+  },
+  {
+   "t": 47.48,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 9,
+   "prompt_tokens": 3649,
+   "completion_tokens": 38,
+   "total_input": 19550,
+   "cost_usd": 0.005865
+  },
+  {
+   "t": 47.48,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 9,
+   "tool": "read_file",
+   "args": {
+    "end_line": 680,
+    "start_line": 630,
+    "path": "src/requests/adapters.py"
+   },
+   "virtual": false,
+   "chars": 2303
+  },
+  {
+   "t": 47.91,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 10,
+   "prompt_tokens": 4470,
+   "completion_tokens": 27,
+   "total_input": 24020,
+   "cost_usd": 0.007206
+  },
+  {
+   "t": 47.91,
+   "type": "tool_call",
+   "lane": "raw",
+   "turn": 10,
+   "tool": "search_code",
+   "args": {
+    "pattern": "conn\\.urlopen",
+    "glob": "*adapters.py"
+   },
+   "virtual": false,
+   "chars": 51
+  },
+  {
+   "t": 48.76,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 6,
+   "original": 1611,
+   "compressed": 1175,
+   "ratio": 0.271,
+   "items": 1,
+   "cache_hits": 1
+  },
+  {
+   "t": 49.22,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 6,
+   "prompt_tokens": 2239,
+   "completion_tokens": 36,
+   "total_input": 7623,
+   "cost_usd": 0.002287
+  },
+  {
+   "t": 49.22,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 6,
+   "tool": "read_file",
+   "args": {
+    "start_line": 63,
+    "end_line": 73,
+    "path": "src/requests/api.py"
+   },
+   "virtual": false,
+   "chars": 473
+  },
+  {
+   "t": 49.22,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 7
+  },
+  {
+   "t": 49.27,
+   "type": "llm_usage",
+   "lane": "raw",
+   "turn": 11,
+   "prompt_tokens": 4270,
+   "completion_tokens": 308,
+   "total_input": 28290,
+   "cost_usd": 0.008487
+  },
+  {
+   "t": 49.27,
+   "type": "lane_done",
+   "lane": "raw",
+   "answer": "Between `requests.get()` and the bytes hitting the socket, several key classes hand off the request through the lifecycle:\n\n1. **`Session`** (in `src/requests/sessions.py`):\n   - The top-level `requests.get()` calls `requests.api.get()`, which creates or uses a `Session` object (`src/requests/api.py`).\n   - The `Session` constructs a **`Request`** object, prepares it into a **`PreparedRequest`** object, and handles session-level features like cookies and hooks (`src/requests/sessions.py`).\n\n2. **`HTTPAdapter`** (in `src/requests/adapters.py`):\n   - The `Session` delegates the actual sending of the `PreparedRequest` to an **`HTTPAdapter`** via `adapter.send(request, ...)`.\n   - The `HTTPAdapter` resolves connection pools, sets up TLS/certificates, populates headers, and determines whether the request is chunked.\n\n3. **urllib3 Connection / Pool Classes** (under the hood via `HTTPAdapter`):\n   - The `HTTPAdapter` obtains a connection object (e.g., urllib3's `HTTPConnectionPool` / `HTTPSConnectionPool` and their underlying connection instances) and calls `conn.urlopen(...)`.\n   - Ultimately, urllib3 formats the HTTP request and writes the raw bytes directly to the underlying Python socket.",
+   "error": null,
+   "wall_seconds": 48.0,
+   "meter": {
+    "input_tokens": 28290,
+    "output_tokens": 593,
+    "api_calls": 11,
+    "tool_calls": 10,
+    "compressed_from": 0,
+    "compressed_to": 0
+   }
+  },
+  {
+   "t": 50.47,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 7,
+   "original": 1746,
+   "compressed": 1310,
+   "ratio": 0.25,
+   "items": 1,
+   "cache_hits": 1
+  },
+  {
+   "t": 50.95,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 7,
+   "prompt_tokens": 2451,
+   "completion_tokens": 26,
+   "total_input": 10074,
+   "cost_usd": 0.003022
+  },
+  {
+   "t": 50.95,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 7,
+   "tool": "search_code",
+   "args": {
+    "glob": "*sessions.py",
+    "pattern": "def request"
+   },
+   "virtual": false,
+   "chars": 43
+  },
+  {
+   "t": 50.95,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 8
+  },
+  {
+   "t": 52.16,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 8,
+   "original": 1758,
+   "compressed": 1322,
+   "ratio": 0.248,
+   "items": 1,
+   "cache_hits": 1
+  },
+  {
+   "t": 52.7,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 8,
+   "prompt_tokens": 2506,
+   "completion_tokens": 38,
+   "total_input": 12580,
+   "cost_usd": 0.003774
+  },
+  {
+   "t": 52.7,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 8,
+   "tool": "read_file",
+   "args": {
+    "end_line": 600,
+    "start_line": 555,
+    "path": "src/requests/sessions.py"
+   },
+   "virtual": false,
+   "chars": 2440
+  },
+  {
+   "t": 52.7,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 9
+  },
+  {
+   "t": 56.21,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 9,
+   "original": 2425,
+   "compressed": 1546,
+   "ratio": 0.362,
+   "items": 2,
+   "cache_hits": 1
+  },
+  {
+   "t": 56.68,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 9,
+   "prompt_tokens": 2817,
+   "completion_tokens": 38,
+   "total_input": 15397,
+   "cost_usd": 0.004619
+  },
+  {
+   "t": 56.68,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 9,
+   "tool": "read_file",
+   "args": {
+    "start_line": 601,
+    "path": "src/requests/sessions.py",
+    "end_line": 660
+   },
+   "virtual": false,
+   "chars": 2605
+  },
+  {
+   "t": 56.68,
+   "type": "compressing",
+   "lane": "paritok",
+   "turn": 10
+  },
+  {
+   "t": 59.72,
+   "type": "compression",
+   "lane": "paritok",
+   "turn": 10,
+   "original": 3087,
+   "compressed": 1594,
+   "ratio": 0.484,
+   "items": 3,
+   "cache_hits": 2
+  },
+  {
+   "t": 60.14,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 10,
+   "prompt_tokens": 2924,
+   "completion_tokens": 26,
+   "total_input": 18321,
+   "cost_usd": 0.005496
+  },
+  {
+   "t": 60.14,
+   "type": "tool_call",
+   "lane": "paritok",
+   "turn": 10,
+   "tool": "search_code",
+   "args": {
+    "pattern": "send\\(",
+    "glob": "*sessions.py"
+   },
+   "virtual": false,
+   "chars": 388
+  },
+  {
+   "t": 63.75,
+   "type": "llm_usage",
+   "lane": "paritok",
+   "turn": 11,
+   "prompt_tokens": 2576,
+   "completion_tokens": 395,
+   "total_input": 20897,
+   "cost_usd": 0.006269
+  },
+  {
+   "t": 63.75,
+   "type": "lane_done",
+   "lane": "paritok",
+   "answer": "Based on the codebase analysis, when you call `requests.get()` and data flows down to the socket, the request hand-off proceeds through the following classes and methods:\n\n1. **`requests.api` (`requests.get`)**: \n   - `requests.get()` calls `requests.api.request('get', url, **kwargs)` (`src/requests/api.py`).\n   - This instantiates a `requests.sessions.Session` and delegates to its `request()` method (`src/requests/api.py`).\n\n2. **`requests.sessions.Session`**:\n   - `Session.request()` builds a `Request` object, calls `.prepare()` on it to get a `PreparedRequest`, and handles parameters, headers, cookies, and authentication (`src/requests/sessions.py`).\n   - It then invokes `Session.send(prep, **send_kwargs)` (`src/requests/sessions.py`).\n\n3. **`requests.adapters.BaseAdapter` / `HTTPAdapter`**:\n   - `Session.send()` retrieves the appropriate connection adapter for the URL scheme (typically an instance of `requests.adapters.HTTPAdapter`) and calls `adapter.send(request, **kwargs)` (`src/requests/sessions.py` and `src/requests/adapters.py`).\n\n4. **`urllib3` Connection Pool and Connection Classes**:\n   - `HTTPAdapter.send()` uses a `urllib3` connection pool manager to get a connection object (typically `urllib3.connectionpool.HTTPConnectionPool` / `HTTPSConnectionPool` and `urllib3.connection.HTTPConnection` / `HTTPSConnection`).\n   - The connection eventually hands off the HTTP request bytes to the underlying Python standard library socket (`socket.socket`) via `sock.sendall()` or equivalent transport mechanisms within `urllib3`.",
+   "error": null,
+   "wall_seconds": 62.5,
+   "meter": {
+    "input_tokens": 20897,
+    "output_tokens": 704,
+    "api_calls": 11,
+    "tool_calls": 10,
+    "compressed_from": 3087,
+    "compressed_to": 1594
+   }
+  },
+  {
+   "t": 63.75,
+   "type": "status",
+   "message": "Photo finish \u2014 blind judge comparing answers."
+  },
+  {
+   "t": 67.21,
+   "type": "verdict",
+   "raw_score": 9,
+   "paritok_score": 10,
+   "note": "Answer B is slightly more complete and specific, detailing the exact method calls (such as Session.send and sock.sendall) in addition to the file paths and classes."
+  },
+  {
+   "t": 67.21,
+   "type": "race_done",
+   "receipt": {
+    "model": "gemini-3.5-flash-lite",
+    "usd_per_mtok": 0.3,
+    "raw": {
+     "input_tokens": 28290,
+     "output_tokens": 593,
+     "api_calls": 11,
+     "tool_calls": 10,
+     "compressed_from": 0,
+     "compressed_to": 0,
+     "wall_seconds": 48.0,
+     "error": null
+    },
+    "paritok": {
+     "input_tokens": 20897,
+     "output_tokens": 704,
+     "api_calls": 11,
+     "tool_calls": 10,
+     "compressed_from": 3087,
+     "compressed_to": 1594,
+     "wall_seconds": 62.5,
+     "error": null
+    },
+    "input_tokens_saved": 7393,
+    "input_pct_saved": 26.1,
+    "cost_saved_usd": 0.002218,
+    "cost_saved_at_sonnet_usd": 0.022179,
+    "verdict": {
+     "score_a": 9,
+     "score_b": 10,
+     "note": "Answer B is slightly more complete and specific, detailing the exact method calls (such as Session.send and sock.sendall) in addition to the file paths and classes."
+    }
+   }
+  }
+ ]
+}

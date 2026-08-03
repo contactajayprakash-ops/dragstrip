@@ -25,7 +25,8 @@ import repo_tools
 from agent import Lane, judge_answers, price_per_mtok
 
 ROOT = Path(__file__).parent
-RACES_DIR = Path(os.environ.get("DRAGSTRIP_RACES", ROOT / "races"))
+_default_races = "/tmp/dragstrip-races" if os.environ.get("VERCEL") else ROOT / "races"
+RACES_DIR = Path(os.environ.get("DRAGSTRIP_RACES", _default_races))
 RACES_DIR.mkdir(parents=True, exist_ok=True)
 
 # Seed bundled demo replays into the live races dir (fresh deploys boot with
@@ -95,7 +96,10 @@ def _persist(state: RaceState, receipt: dict | None):
         "receipt": receipt,
         "events": state.events,
     }
-    (RACES_DIR / f"{state.race_id}.json").write_text(json.dumps(doc, indent=1))
+    try:
+        (RACES_DIR / f"{state.race_id}.json").write_text(json.dumps(doc, indent=1))
+    except OSError:
+        pass  # read-only host — the race still streamed fine
 
 
 def _run_race(state: RaceState):
@@ -192,6 +196,44 @@ def race_events(race_id: str):
             for evt in batch:
                 yield f"data: {json.dumps(evt)}\n\n"
             if finished and i >= len(state.events):
+                return
+            if not batch:
+                yield ": keepalive\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache",
+                                      "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/race/stream")
+def race_stream(repo_url: str, question: str):
+    """Single-request race: start it and stream its SSE until the flag drops.
+
+    This is the whole race in one HTTP response, which is what lets Dragstrip
+    run on serverless hosts (no cross-request state needed). The regular
+    POST /api/race + GET /events pair still works for long-lived servers.
+    """
+    if not (os.environ.get("DRAGSTRIP_LLM_API_KEY") or os.environ.get("GROQ_API_KEY")):
+        raise HTTPException(503, "No LLM API key configured — try a saved replay below.")
+    if not question.strip():
+        raise HTTPException(400, "Ask a question about the repo.")
+    race_id = uuid.uuid4().hex[:12]
+    state = RaceState(race_id, repo_url.strip(), question.strip())
+    RACES[race_id] = state
+    threading.Thread(target=_run_race, args=(state,), daemon=True).start()
+
+    def gen():
+        yield f"data: {json.dumps({'t': 0, 'type': 'race_id', 'race_id': race_id})}\n\n"
+        i = 0
+        while True:
+            with state.cond:
+                state.cond.wait(timeout=10)
+                batch = state.events[i:]
+                i = len(state.events)
+                finished = state.done
+            for evt in batch:
+                yield f"data: {json.dumps(evt)}\n\n"
+            if finished:
                 return
             if not batch:
                 yield ": keepalive\n\n"

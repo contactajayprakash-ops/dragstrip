@@ -384,6 +384,7 @@
       case "race_error": toast(evt.message, 8000); break;
       case "race_done": {
         if (evt.receipt) showReceipt(evt.receipt);
+        if (state.es) { state.es.close(); state.es = null; }
         loadReplays();
         $("start").disabled = false;
         break;
@@ -409,25 +410,21 @@
     }
   }
 
-  async function startRace() {
+  function startRace() {
     const repo = $("repo").value.trim(), q = $("question").value.trim();
     if (!repo || !q) { toast("Give me a public GitHub repo and a question."); return; }
     stopReplay();
     $("start").disabled = true;
-    try {
-      const res = await fetch("/api/race", { method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_url: repo, question: q }) });
-      if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
-      const { race_id } = await res.json();
-      resetUI();
-      state.es = new EventSource(`/api/race/${race_id}/events`);
-      state.es.onmessage = m => handle(JSON.parse(m.data));
-      state.es.onerror = () => { state.es.close(); $("start").disabled = false; };
-    } catch (e) {
-      toast(e.message, 7000);
+    resetUI();
+    const url = `/api/race/stream?repo_url=${encodeURIComponent(repo)}&question=${encodeURIComponent(q)}`;
+    state.es = new EventSource(url);
+    let sawEvent = false;
+    state.es.onmessage = m => { sawEvent = true; const e = JSON.parse(m.data); if (e.type !== "race_id") handle(e); };
+    state.es.onerror = () => {
+      state.es.close();
       $("start").disabled = false;
-    }
+      if (!sawEvent) toast("Couldn't start the race — no LLM key configured? Try a replay below.", 7000);
+    };
   }
 
   // ── replays ──
