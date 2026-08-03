@@ -29,15 +29,37 @@ _default_races = "/tmp/dragstrip-races" if os.environ.get("VERCEL") else ROOT / 
 RACES_DIR = Path(os.environ.get("DRAGSTRIP_RACES", _default_races))
 RACES_DIR.mkdir(parents=True, exist_ok=True)
 
-# Seed bundled demo replays into the live races dir (fresh deploys boot with
-# something on the shelf even before anyone runs a race).
-for _demo in (ROOT / "races_seed").glob("*.json"):
-    _target = RACES_DIR / _demo.name
-    if not _target.exists():
-        try:
-            _target.write_text(_demo.read_text())
-        except OSError:
-            pass
+# Seed demo replays into the live races dir (fresh deploys boot with something
+# on the shelf even before anyone runs a race). Local seeds win; otherwise pull
+# them from the public repo — covers hosts where the seed files aren't bundled.
+def _seed_replays():
+    seeded = False
+    for demo in (ROOT / "races_seed").glob("*.json"):
+        target = RACES_DIR / demo.name
+        if not target.exists():
+            try:
+                target.write_text(demo.read_text())
+            except OSError:
+                return
+        seeded = True
+    if seeded or any(RACES_DIR.glob("*.json")):
+        return
+    repo = os.environ.get("DRAGSTRIP_SEED_REPO", "contactajayprakash-ops/dragstrip")
+    try:
+        import httpx
+        listing = httpx.get(
+            f"https://api.github.com/repos/{repo}/contents/races_seed",
+            timeout=10, headers={"User-Agent": "dragstrip"}).json()
+        for item in listing if isinstance(listing, list) else []:
+            if item.get("name", "").endswith(".json") and item.get("download_url"):
+                body = httpx.get(item["download_url"], timeout=10,
+                                 headers={"User-Agent": "dragstrip"}).text
+                (RACES_DIR / item["name"]).write_text(body)
+    except Exception:
+        pass  # no seeds is a degraded shelf, not a broken app
+
+
+_seed_replays()
 
 app = FastAPI(title="Dragstrip")
 
