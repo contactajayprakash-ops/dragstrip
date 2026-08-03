@@ -43,11 +43,13 @@ SYSTEM_PROMPT = (
 )
 
 
-# Groq list prices (per 1M input tokens) — models Paritok's table doesn't know.
+# List prices (per 1M input tokens) for models Paritok's table doesn't know.
 EXTRA_USD_PER_MTOK = {
     "llama-3.3-70b-versatile": 0.59,
     "openai/gpt-oss-120b": 0.15,
     "openai/gpt-oss-20b": 0.075,
+    "gemini-3.5-flash": 0.75,
+    "gemini-3.5-flash-lite": 0.30,
 }
 
 
@@ -148,11 +150,16 @@ class Lane:
                     if b["type"] == "text":
                         text_parts.append(b["text"])
                     elif b["type"] == "tool_use":
-                        tool_calls.append({
+                        tc = {
                             "id": b["id"], "type": "function",
                             "function": {"name": b["name"],
                                          "arguments": json.dumps(b["input"])},
-                        })
+                        }
+                        # Gemini 3.x requires its thought_signature round-tripped
+                        # on every historical tool call.
+                        if b.get("extra_content"):
+                            tc["extra_content"] = b["extra_content"]
+                        tool_calls.append(tc)
                 msg = {"role": "assistant", "content": "\n".join(text_parts) or None}
                 if tool_calls:
                     msg["tool_calls"] = tool_calls
@@ -188,8 +195,14 @@ class Lane:
                 args = json.loads(tc.function.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}
-            blocks.append({"type": "tool_use", "id": tc.id,
-                           "name": tc.function.name, "input": args})
+            block = {"type": "tool_use", "id": tc.id,
+                     "name": tc.function.name, "input": args}
+            extra = getattr(tc, "extra_content", None)
+            if extra is None and getattr(tc, "model_extra", None):
+                extra = tc.model_extra.get("extra_content")
+            if extra:
+                block["extra_content"] = extra
+            blocks.append(block)
         return blocks
 
     # ── the loop ──
@@ -338,7 +351,7 @@ class Lane:
                 return self.client.chat.completions.create(**kwargs)
             except openai_mod.RateLimitError as e:
                 last_err = e
-                m = re.search(r"try again in ([0-9.]+)s", str(e))
+                m = re.search(r"(?:try again|retry) in ([0-9.]+)\s*s", str(e))
                 wait = min(float(m.group(1)) + 1.0 if m else 12.0, 45.0)
                 self.emit("rate_limited", {"lane": self.lane_id, "turn": turn,
                                            "wait_s": round(wait, 1)})
@@ -409,7 +422,8 @@ def judge_answers(question: str, answer_a: str, answer_b: str) -> dict:
         model=model, temperature=0,
         messages=[{"role": "user", "content": JUDGE_PROMPT.format(
             question=question, a=answer_a[:6000], b=answer_b[:6000])}],
-        max_tokens=300,
+        # generous: thinking models spend part of this budget on reasoning
+        max_tokens=4000,
     )
     text = resp.choices[0].message.content or "{}"
     try:

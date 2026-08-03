@@ -7,16 +7,20 @@ so we don't pre-trim anything the way a hand-optimized agent might.
 
 from __future__ import annotations
 
+import io
 import os
 import re
 import shutil
-import subprocess
+import tarfile
 import threading
 from pathlib import Path
+
+import httpx
 
 CACHE_DIR = Path(os.environ.get("DRAGSTRIP_CACHE", "/tmp/dragstrip-repos"))
 CLONE_TIMEOUT_S = 90
 MAX_REPO_MB = 200
+MAX_TARBALL_MB = 80
 MAX_FILE_BYTES = 120_000      # read_file cap per call
 MAX_GREP_LINES = 200
 _clone_locks: dict[str, threading.Lock] = {}
@@ -35,32 +39,95 @@ def _slug(repo_url: str) -> str:
 
 
 def clone_repo(repo_url: str) -> Path:
-    """Shallow-clone a public GitHub repo into the cache, once."""
-    m = re.match(r"^https://github\.com/[\w.-]+/[\w.-]+/?$", repo_url.rstrip("/"))
+    """Fetch a public GitHub repo's default branch into the cache, once.
+
+    Uses the tarball endpoint rather than `git clone` so it works anywhere
+    Python does — serverless included, where there is no git binary.
+    """
+    m = re.match(r"^https://github\.com/([\w.-]+)/([\w.-]+?)(?:\.git)?/?$",
+                 repo_url.rstrip("/"))
     if not m:
         raise RepoError("Only public github.com/<owner>/<repo> URLs are supported.")
+    owner, name = m.group(1), m.group(2)
     dest = CACHE_DIR / _slug(repo_url)
+    marker = dest / ".dragstrip-ready"
     with _locks_guard:
         lock = _clone_locks.setdefault(str(dest), threading.Lock())
     with lock:
-        if (dest / ".git").exists():
+        if marker.exists():
             return dest
         if dest.exists():
             shutil.rmtree(dest)
         dest.parent.mkdir(parents=True, exist_ok=True)
+
+        # Prefer git when the host has it (dev boxes); fall back to the
+        # tarball endpoint where it doesn't (serverless).
+        if shutil.which("git"):
+            import subprocess
+            try:
+                subprocess.run(
+                    ["git", "clone", "--depth", "1", "--single-branch",
+                     f"https://github.com/{owner}/{name}", str(dest)],
+                    check=True, capture_output=True, timeout=CLONE_TIMEOUT_S)
+                size_mb = sum(f.stat().st_size for f in dest.rglob("*")
+                              if f.is_file()) / 1e6
+                if size_mb > MAX_REPO_MB:
+                    shutil.rmtree(dest)
+                    raise RepoError(f"Repo is {size_mb:.0f}MB — over the "
+                                    f"{MAX_REPO_MB}MB demo cap.")
+                marker.touch()
+                return dest
+            except subprocess.TimeoutExpired:
+                raise RepoError("Clone timed out — repo may be too large.")
+            except subprocess.CalledProcessError as e:
+                raise RepoError("Clone failed: "
+                                + e.stderr.decode(errors="replace")[-300:])
+
+        url = f"https://codeload.github.com/{owner}/{name}/tar.gz/HEAD"
         try:
-            subprocess.run(
-                ["git", "clone", "--depth", "1", "--single-branch", repo_url, str(dest)],
-                check=True, capture_output=True, timeout=CLONE_TIMEOUT_S,
-            )
-        except subprocess.TimeoutExpired:
-            raise RepoError("Clone timed out — repo may be too large.")
-        except subprocess.CalledProcessError as e:
-            raise RepoError(f"Clone failed: {e.stderr.decode(errors='replace')[-300:]}")
-        size_mb = sum(f.stat().st_size for f in dest.rglob("*") if f.is_file()) / 1e6
+            with httpx.stream("GET", url, timeout=CLONE_TIMEOUT_S,
+                              follow_redirects=True) as resp:
+                if resp.status_code == 404:
+                    raise RepoError(f"{owner}/{name} not found (private repos aren't supported).")
+                resp.raise_for_status()
+                buf, total = io.BytesIO(), 0
+                for chunk in resp.iter_bytes():
+                    total += len(chunk)
+                    if total > MAX_TARBALL_MB * 1e6:
+                        raise RepoError(f"Repo tarball is over the {MAX_TARBALL_MB}MB demo cap.")
+                    buf.write(chunk)
+        except httpx.HTTPError as e:
+            raise RepoError(f"Fetch failed: {e}")
+        buf.seek(0)
+        tmp = dest.parent / (dest.name + ".partial")
+        if tmp.exists():
+            shutil.rmtree(tmp)
+        tmp.mkdir(parents=True)
+        try:
+            with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+                members = []
+                for mem in tar.getmembers():
+                    # strip the "<repo>-<sha>/" top folder; refuse path escapes
+                    parts = mem.name.split("/", 1)
+                    if len(parts) < 2 or not parts[1]:
+                        continue
+                    rel = parts[1]
+                    if rel.startswith("/") or ".." in rel.split("/"):
+                        continue
+                    if not (mem.isfile() or mem.isdir()):
+                        continue  # no symlinks/devices from untrusted archives
+                    mem.name = rel
+                    members.append(mem)
+                tar.extractall(tmp, members=members)
+        except tarfile.TarError as e:
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise RepoError(f"Bad tarball: {e}")
+        size_mb = sum(f.stat().st_size for f in tmp.rglob("*") if f.is_file()) / 1e6
         if size_mb > MAX_REPO_MB:
-            shutil.rmtree(dest)
+            shutil.rmtree(tmp)
             raise RepoError(f"Repo is {size_mb:.0f}MB — over the {MAX_REPO_MB}MB demo cap.")
+        tmp.rename(dest)
+        marker.touch()
         return dest
 
 
@@ -121,23 +188,46 @@ def read_file(root: Path, path: str, start_line: int = 1, end_line: int | None =
 
 
 def search_code(root: Path, pattern: str, glob: str | None = None) -> str:
-    cmd = ["grep", "-rn", "-I", "--max-count=8", "-E", pattern, "."]
-    for d in _SKIP_DIRS:
-        cmd.insert(1, f"--exclude-dir={d}")
-    if glob:
-        cmd.insert(1, f"--include={glob}")
+    """Pure-Python grep -rn: portable to environments with no grep binary."""
+    import fnmatch
+
     try:
-        out = subprocess.run(cmd, cwd=root, capture_output=True, timeout=30, text=True)
-    except subprocess.TimeoutExpired:
-        return "Search timed out."
-    if out.returncode == 2:
-        return f"Bad pattern: {out.stderr[-200:]}"
-    lines = out.stdout.splitlines()
-    if not lines:
+        rx = re.compile(pattern)
+    except re.error as e:
+        return f"Bad pattern: {e}"
+    hits, truncated = [], False
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        for name in sorted(filenames):
+            if glob and not fnmatch.fnmatch(name, glob):
+                continue
+            p = Path(dirpath) / name
+            rel = p.relative_to(root)
+            try:
+                if p.stat().st_size > 2_000_000:
+                    continue
+                text = p.read_text(errors="strict")
+            except (OSError, UnicodeDecodeError):
+                continue  # binary or unreadable
+            per_file = 0
+            for i, line in enumerate(text.splitlines(), 1):
+                if rx.search(line):
+                    hits.append(f"./{rel}:{i}:{line.strip()[:200]}")
+                    per_file += 1
+                    if per_file >= 8:
+                        break
+                    if len(hits) > MAX_GREP_LINES:
+                        truncated = True
+                        break
+            if truncated:
+                break
+        if truncated:
+            break
+    if not hits:
         return f"No matches for /{pattern}/"
-    if len(lines) > MAX_GREP_LINES:
-        lines = lines[:MAX_GREP_LINES] + [f"... {len(lines) - MAX_GREP_LINES} more matches truncated"]
-    return "\n".join(lines)
+    if truncated or len(hits) > MAX_GREP_LINES:
+        hits = hits[:MAX_GREP_LINES] + ["... more matches truncated"]
+    return "\n".join(hits)
 
 
 def file_outline(root: Path, path: str) -> str:
