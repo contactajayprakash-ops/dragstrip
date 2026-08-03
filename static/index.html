@@ -339,10 +339,17 @@
       case "compressing": feed(evt.lane, "comp", `${ts}⛽ compressing context before the call…`); break;
       case "compression": {
         feed(evt.lane, "comp",
-          `${ts}⛽ ${fmt(evt.original)} → ${fmt(evt.compressed)} tok (−${Math.round(100 * (1 - evt.compressed / Math.max(evt.original, 1)))}%)` +
-          (evt.cache_hits ? ` · ${evt.cache_hits} cache hit${evt.cache_hits > 1 ? "s" : ""}` : ""));
-        const el = $("s-par-comp");
-        el.textContent = fmt((state.meters.par.comp_away = (state.meters.par.comp_away || 0) + (evt.original - evt.compressed)));
+          `${ts}⛽ context now carries ${fmt(evt.compressed)} tok where raw would carry ${fmt(evt.original)} (−${Math.round(100 * (1 - evt.compressed / Math.max(evt.original, 1)))}%)` +
+          (evt.cache_hits ? ` · ${evt.cache_hits} cached` : ""));
+        $("s-par-comp").textContent = fmt(evt.original - evt.compressed);
+        break;
+      }
+      case "status_lane": {
+        feed(evt.lane, "usage", `${ts}${evt.message}`);
+        break;
+      }
+      case "rate_limited": {
+        feed(evt.lane, "error", `${ts}⏳ provider rate limit — lane stalled ${evt.wait_s}s`);
         break;
       }
       case "llm_usage": {

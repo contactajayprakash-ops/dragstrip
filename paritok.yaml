@@ -1,5 +1,5 @@
 # Paritok backend for Dragstrip.
-# Hosted GPU (recommended): flip to true and set PARITOK_API_KEY.
-use_gpu_server: false
+# Hosted GPU (recommended): set PARITOK_API_KEY. Flip to false for local Ollama.
+use_gpu_server: true
 local_model:
   timeout: 600.0

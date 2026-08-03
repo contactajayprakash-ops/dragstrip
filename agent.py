@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -31,17 +32,49 @@ MAX_TOOL_RESULT_CHARS = 60_000
 
 SYSTEM_PROMPT = (
     "You are a code-analysis agent answering one question about a repository. "
-    "Explore with the tools — list, search, outline, read — until you can "
-    "answer precisely, citing file paths and line numbers. Be thorough but "
-    "do not re-read content you already have. When you are confident, stop "
-    "calling tools and write the final answer in plain prose."
+    "Investigate properly before answering: map the layout, search for the "
+    "relevant symbols, then READ the actual implementations — the real "
+    "function bodies, not just search hits or file names. Follow the call "
+    "chain across files when the question spans one. Do not answer from "
+    "assumptions or from README prose alone, and do not re-read content you "
+    "already have. When you can back every claim with a file path and line "
+    "number, stop calling tools and write the final answer in plain prose "
+    "with those citations."
 )
 
 
+# Groq list prices (per 1M input tokens) — models Paritok's table doesn't know.
+EXTRA_USD_PER_MTOK = {
+    "llama-3.3-70b-versatile": 0.59,
+    "openai/gpt-oss-120b": 0.15,
+    "openai/gpt-oss-20b": 0.075,
+}
+
+
+def _guard_empty_compression(engine: ParitokEngine):
+    """Workaround for a hosted-GPU bug (reported upstream): /compress sometimes
+    returns {"compressed": "", "gpu_available": true} — e.g. for tree listings
+    and other repetitive text — and the client accepts the empty string as a
+    valid summary, silently destroying the tool result. Until the fix lands,
+    treat an (almost) empty result as a failed compression and keep the
+    original content."""
+    strategy = engine.pipeline._model
+    inner = strategy.compress
+
+    def compress(content: str, **kw) -> str:
+        out = inner(content, **kw)
+        if len(out.strip()) < 20 and len(content.strip()) >= 200:
+            return content
+        return out
+
+    strategy.compress = compress
+
+
 def price_per_mtok(model: str) -> float:
-    """Longest-prefix match against Paritok's own pricing table."""
+    """Longest-prefix match against Paritok's pricing table + Groq additions."""
+    table = INPUT_USD_PER_MTOK | EXTRA_USD_PER_MTOK
     best, best_len = DEFAULT_USD_PER_MTOK, 0
-    for prefix, usd in INPUT_USD_PER_MTOK.items():
+    for prefix, usd in table.items():
         if model.startswith(prefix) and len(prefix) > best_len:
             best, best_len = usd, len(prefix)
     return best
@@ -97,6 +130,7 @@ class Lane:
             # keep the lane honest and the deploy slim.
             cfg.tool_discovery.strategy = "passthrough"
             self.engine = ParitokEngine(cfg)
+            _guard_empty_compression(self.engine)
 
     # ── wire-format translation (canonical Anthropic blocks ↔ OpenAI) ──
 
@@ -185,12 +219,20 @@ class Lane:
 
             send_messages, send_tools = messages, list(repo_tools.TOOL_SCHEMAS)
 
-            if self.engine:
+            has_tool_results = any(
+                isinstance(m.get("content"), list)
+                and any(isinstance(b, dict) and b.get("type") == "tool_result"
+                        for b in m["content"])
+                for m in messages)
+            if self.engine and has_tool_results:
                 self.emit("compressing", {"lane": self.lane_id, "turn": turn})
                 send_messages, send_tools, stats, stubbed = self.engine.process_request(
                     [dict(m) for m in messages], send_tools, upstream_model=self.model)
-                self.meter.compressed_from += stats.original_tokens
-                self.meter.compressed_to += stats.compressed_tokens
+                # snapshot, not a running sum: each request re-compresses the
+                # whole context (cached), so the latest stats already cover
+                # every tool result so far
+                self.meter.compressed_from = stats.original_tokens
+                self.meter.compressed_to = stats.compressed_tokens
                 if stats.original_tokens:
                     self.emit("compression", {
                         "lane": self.lane_id, "turn": turn,
@@ -202,10 +244,7 @@ class Lane:
                     })
 
             oai_msgs, oai_tools = self._to_openai(send_messages, send_tools)
-            resp = self.client.chat.completions.create(
-                model=self.model, messages=oai_msgs, tools=oai_tools,
-                tool_choice="auto", temperature=0.1, max_tokens=1800,
-            )
+            resp = self._call_llm(oai_msgs, oai_tools, turn)
             usage = resp.usage
             self.meter.api_calls += 1
             self.meter.input_tokens += usage.prompt_tokens
@@ -236,7 +275,71 @@ class Lane:
                                 "content": out})
             messages.append({"role": "user", "content": results})
 
-        self.answer = "(ran out of turns before finishing)"
+        # Out of turns: no more tools, answer with what's in hand.
+        send_messages = messages
+        if self.engine:
+            send_messages, _, _, _ = self.engine.process_request(
+                [dict(m) for m in messages], None, upstream_model=self.model)
+        send_messages = send_messages + [{
+            "role": "user",
+            "content": "Turn budget exhausted — answer the question now, as "
+                       "well as you can, from what you have already seen.",
+        }]
+        oai_msgs, _ = self._to_openai(send_messages, None)
+        resp = self._call_llm(oai_msgs, None, MAX_TURNS + 1)
+        self.meter.api_calls += 1
+        self.meter.input_tokens += resp.usage.prompt_tokens
+        self.meter.output_tokens += resp.usage.completion_tokens
+        self.emit("llm_usage", {
+            "lane": self.lane_id, "turn": MAX_TURNS + 1,
+            "prompt_tokens": resp.usage.prompt_tokens,
+            "completion_tokens": resp.usage.completion_tokens,
+            "total_input": self.meter.input_tokens,
+            "cost_usd": round(self.meter.input_tokens / 1e6
+                              * price_per_mtok(self.model), 6),
+        })
+        self.answer = (resp.choices[0].message.content or "").strip() or \
+            "(ran out of turns before finishing)"
+
+    def _call_llm(self, oai_msgs, oai_tools, turn):
+        """One chat completion, riding out provider rate limits.
+
+        Free-tier TPM limits are part of the story this app tells — the raw
+        lane slams into them much harder than the compressed lane — so instead
+        of failing the race we wait out the window and say so on the feed.
+        """
+        import openai as openai_mod
+
+        last_err = None
+        bad_tool_strikes = 0
+        for attempt in range(8):
+            if self.stop_flag.is_set():
+                raise RuntimeError("stopped")
+            try:
+                kwargs = dict(model=self.model, messages=oai_msgs,
+                              temperature=0.1, max_tokens=1800)
+                if oai_tools and bad_tool_strikes < 3:
+                    kwargs["tools"] = oai_tools
+                    kwargs["tool_choice"] = "auto"
+                return self.client.chat.completions.create(**kwargs)
+            except openai_mod.RateLimitError as e:
+                last_err = e
+                m = re.search(r"try again in ([0-9.]+)s", str(e))
+                wait = min(float(m.group(1)) + 1.0 if m else 12.0, 45.0)
+                self.emit("rate_limited", {"lane": self.lane_id, "turn": turn,
+                                           "wait_s": round(wait, 1)})
+                time.sleep(wait)
+            except openai_mod.BadRequestError as e:
+                # Some providers hard-fail the request when the model emits a
+                # malformed tool call. Regenerate; after 3 strikes ask for
+                # prose so the lane finishes instead of crashing.
+                if "tool" not in str(e).lower():
+                    raise
+                last_err = e
+                bad_tool_strikes += 1
+                self.emit("status_lane", {"lane": self.lane_id,
+                                          "message": "model fumbled a tool call — regenerating"})
+        raise last_err
 
     def _run_tool(self, tu: dict, stubbed: list, turn: int) -> str:
         name, args = tu["name"], tu["input"]
