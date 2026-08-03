@@ -61,6 +61,35 @@ def _seed_replays():
 
 _seed_replays()
 
+_SEED_REPO = os.environ.get("DRAGSTRIP_SEED_REPO", "contactajayprakash-ops/dragstrip")
+
+
+def _resolve_static() -> Path:
+    """Find the UI. Bundled static/ wins; otherwise pull it from the public
+    repo once per cold start (keeps lightweight deploys possible)."""
+    local = ROOT / "static"
+    if (local / "index.html").exists():
+        return local
+    fetched = Path("/tmp/dragstrip-static")
+    fetched.mkdir(parents=True, exist_ok=True)
+    target = fetched / "index.html"
+    if not target.exists():
+        try:
+            import httpx
+            body = httpx.get(
+                f"https://raw.githubusercontent.com/{_SEED_REPO}/main/static/index.html",
+                timeout=15, headers={"User-Agent": "dragstrip"},
+                follow_redirects=True)
+            body.raise_for_status()
+            target.write_text(body.text)
+        except Exception:
+            target.write_text("<h1>Dragstrip</h1><p>UI failed to load — "
+                              "see the API at /api/health.</p>")
+    return fetched
+
+
+STATIC_DIR = _resolve_static()
+
 app = FastAPI(title="Dragstrip")
 
 
@@ -320,7 +349,7 @@ def health():
 
 @app.get("/")
 def index():
-    return FileResponse(ROOT / "static" / "index.html")
+    return FileResponse(STATIC_DIR / "index.html")
 
 
-app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
