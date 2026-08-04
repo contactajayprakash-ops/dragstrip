@@ -103,6 +103,10 @@ call, and `expand_context` calls are resolved locally through
 same `CompressionStats` the engine returns, and dollar figures use Paritok's
 own pricing table.
 
+## Demo
+
+Live app: https://dragstrip.vercel.app — seeded with replayable recorded races.
+
 ## Credit
 
 Compression by [Paritok](https://github.com/Paritok-official/paritok-4b-v1)
