@@ -54,12 +54,23 @@ EXTRA_USD_PER_MTOK = {
 
 
 def _guard_empty_compression(engine: ParitokEngine):
-    """Workaround for a hosted-GPU bug (reported upstream): /compress sometimes
-    returns {"compressed": "", "gpu_available": true} — e.g. for tree listings
-    and other repetitive text — and the client accepts the empty string as a
-    valid summary, silently destroying the tool result. Until the fix lands,
-    treat an (almost) empty result as a failed compression and keep the
-    original content."""
+    """Belt-and-braces guard against an empty compression being treated as a
+    valid summary, which silently destroys the tool result.
+
+    This was a live hosted-GPU bug when Dragstrip was built: /compress returned
+    {"compressed": "", "gpu_available": true} and the client accepted "" as a
+    summary, so the agent went blind on that tool output and burned MORE tokens
+    re-exploring. Reported as paritok-4b-v1 issue #20 and fixed upstream in
+    1.3.5 / 1.3.6 — the endpoint no longer returns an empty body, and a
+    query-conditioned drop now comes back as a recoverable stub carrying
+    dropped: true (distinguishable from a GPU outage, which sets
+    gpu_available: false).
+
+    The guard is inert against a current hosted backend — the stub is longer
+    than the threshold below, so it passes through and the intended behaviour
+    wins. Kept for self-hosted and pinned-older setups, where the client-side
+    check is still the only thing standing between an empty body and a blinded
+    agent."""
     strategy = engine.pipeline._model
     inner = strategy.compress
 
